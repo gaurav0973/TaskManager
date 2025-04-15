@@ -64,6 +64,8 @@ const createProjectValidator = () => {
     body("description").optional(),
   ];
 };
+
+
 const addMemberToProjectValidator = () => {
   return [
     body("email")
@@ -79,6 +81,7 @@ const addMemberToProjectValidator = () => {
       .withMessage("Role is invalid"),
   ];
 };
+
 
 const createTaskValidator = () => {
   return [
