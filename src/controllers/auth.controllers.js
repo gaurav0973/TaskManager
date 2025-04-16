@@ -6,11 +6,9 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { emailVerificationMailgenContent, sendEmail } from "../utils/mail.js";
 
 const registerUser = asyncHandler(async (req, res) => {
-  
   //1. get user info from frontend
   console.log(req.body); //✅
   const { fullName, email, username, password } = req.body;
-  
 
   // 2. validate the data =>  middleware
 
@@ -27,12 +25,11 @@ const registerUser = asyncHandler(async (req, res) => {
   let avatarLocalPath;
 
   // console.log("File : ", req.file); //✅
-  
+
   if (req.file) {
     avatarLocalPath = req.file.path;
   }
   // console.log(avatarLocalPath);  //✅
-  
 
   // 5. upload avatar to cloudinary
   let avatar = {};
@@ -57,7 +54,8 @@ const registerUser = asyncHandler(async (req, res) => {
   });
 
   // 7. generate email verification token
-  const { unHashedToken, hashedToken, tokenExpiry } = user.generateTemporaryToken();
+  const { unHashedToken, hashedToken, tokenExpiry } =
+    user.generateTemporaryToken();
   user.emailVerificationToken = hashedToken;
   user.emailVerificationExpiry = tokenExpiry;
   await user.save();
@@ -68,7 +66,7 @@ const registerUser = asyncHandler(async (req, res) => {
     subject: "Please verify your email",
     mailgenContent: emailVerificationMailgenContent(
       user.username,
-      `${process.env.BASE_URL}/api/v1/users/verifyEmail/${unHashedToken}`,
+      `${process.env.BASE_URL}/api/v1/users/verifyEmail/${hashedToken}`,
     ),
   });
 
@@ -85,7 +83,41 @@ const registerUser = asyncHandler(async (req, res) => {
 });
 
 const verifyEmail = asyncHandler(async (req, res) => {
+  // 1. get the token
+  const token = req.params.token;
+  console.log(token);
   
+  try {
+    // 2. find the user with the verification token in DB
+    const user = await User.findOne({ emailVerificationToken: token });
+    // 3. check if user exists
+    if (!user) {
+      throw new ApiError(400, "Invalid verification token");
+    }
+
+    // 4. check if token is expired
+    if (Date.now() > user.emailVerificationExpiry) {
+      throw new ApiError(400, "Token has expired");
+    }
+    // 4. Check if the email is already verified
+    if (user.isEmailVerified) {
+      return res
+        .status(400)
+        .json(new ApiResponse(400, null, "Email is already verified"));
+    }
+    // 5. update user verification status
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpiry = undefined;
+    await user.save();
+
+    // 6. send response
+    return res.status(200)
+      .json(new ApiResponse(200, { user }, "Email verified successfully"));
+  }
+  catch (error) {
+    throw new ApiError(400, "Email Verification Failed");
+  }
 });
 
 const loginUser = asyncHandler(async (req, res) => {});
