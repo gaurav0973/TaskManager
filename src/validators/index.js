@@ -31,9 +31,13 @@ const userRegisterValidator = () => {
 
 const userLoginValidator = () => {
   return [
-    body("email").optional().isEmail().withMessage("Email is invalid"),
-    body("username").optional(),
-    body("password").notEmpty().withMessage("Password is required"),
+    body("email")
+      .trim()
+      .notEmpty()
+      .withMessage("Email is required")
+      .isEmail()
+      .withMessage("Email is invalid"),
+    body("password").trim().notEmpty().withMessage("Password is required"),
   ];
 };
 
@@ -89,10 +93,8 @@ const createTaskValidator = () => {
     body("description").optional(),
     body("assignedTo").notEmpty().withMessage("Assigned to is required"),
     body("status")
-      .optional()
-      .notEmpty()
-      .withMessage("Status is required")
-      .isIn(AvailableTaskStatuses),
+      .isIn(AvailableTaskStatuses)
+      .withMessage("Status is invalid"),
   ];
 };
 
