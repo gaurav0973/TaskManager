@@ -113,6 +113,7 @@ const notesValidator = () => {
 };
 
 export {
+  userRegisterValidator,
   addMemberToProjectValidator,
   createProjectValidator,
   createTaskValidator,
@@ -121,6 +122,5 @@ export {
   userChangeCurrentPasswordValidator,
   userForgotPasswordValidator,
   userLoginValidator,
-  userRegisterValidator,
   userResetForgottenPasswordValidator,
 };

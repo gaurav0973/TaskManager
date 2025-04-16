@@ -1,6 +1,6 @@
 import multer from "multer"
 
-// store in the diskstorage => local server
+//1. store in the diskstorage => local server
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null,"./public/images");
@@ -11,7 +11,7 @@ const storage = multer.diskStorage({
 });
 
 
-
+//2. Upload the file to local storage {min= 1MB}
 export const upload = multer({
   storage,
   limits: {
