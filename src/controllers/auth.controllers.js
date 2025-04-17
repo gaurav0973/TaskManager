@@ -6,6 +6,8 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { emailVerificationMailgenContent, sendEmail } from "../utils/mail.js";
 import { generateAccessAndRefreshToken } from "../utils/generate-access-refresh.js";
 
+
+// register user
 const registerUser = asyncHandler(async (req, res) => {
   //1. get user info from frontend
   console.log(req.body); //✅
@@ -83,6 +85,7 @@ const registerUser = asyncHandler(async (req, res) => {
     );
 });
 
+// verify the user
 const verifyEmail = asyncHandler(async (req, res) => {
   // 1. get the token
   const token = req.params.token;
@@ -121,6 +124,8 @@ const verifyEmail = asyncHandler(async (req, res) => {
   }
 });
 
+
+// login the user 
 const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   console.log("LoginStarts : ", req.body);
@@ -144,7 +149,9 @@ const loginUser = asyncHandler(async (req, res) => {
     }
 
     // 4. generate access and refresh tokens
-    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
+      user._id,
+    );
 
     // 5. set cookies
     const options = {
@@ -155,23 +162,55 @@ const loginUser = asyncHandler(async (req, res) => {
     res.cookie("refreshToken", refreshToken, options);
 
     // 6 send response
-    return res.status(200).json(
-      new ApiResponse(200,{user},"Logged in Successfully",))
-  }
-  catch (error) {
+    return res
+      .status(200)
+      .json(new ApiResponse(200, { user }, "Logged in Successfully"));
+  } catch (error) {
     throw new ApiError(400, "Login Failed");
   }
 });
 
 
+// get the user information
 const getCurrentUser = asyncHandler(async (req, res) => {
-    const userId = req.userId;
-    const user = req.user;
-    return res.status(200)
-        .json(new ApiResponse(200, user, "User Fetched Successfully"));
+  const userId = req.userId;
+  const user = req.user;
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "User Fetched Successfully"));
 });
 
-const logoutUser = asyncHandler(async (req, res) => {});
+
+// logout the user 
+const logoutUser = asyncHandler(async (req, res) => {
+  // 1. get user => isLoggedIn se
+  const user = req.user;
+  if (!user) {
+    throw new ApiError(400, "User not authenticated")
+  }
+
+  try {
+    //2. Clear refresh token in DB
+    user.refreshToken = undefined;
+    await user.save();
+
+    //3. Clear cookies => frontend
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+    res.clearCookie("accessToken", options);
+    res.clearCookie("refreshToken", options);
+
+    // 4. return response
+    return res.status(200)
+      .json(new ApiResponse(200, {}, "Logged Out Successfully"))
+
+  }
+  catch(error){
+    throw new ApiError(400, "Error while logging out")
+  }
+});
 
 const resendEmailVerification = asyncHandler(async (req, res) => {});
 const resetForgottenPassword = asyncHandler(async (req, res) => {});

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getCurrentUser, loginUser, registerUser, verifyEmail } from "../controllers/auth.controllers.js";
+import { getCurrentUser, loginUser, logoutUser, registerUser, verifyEmail } from "../controllers/auth.controllers.js";
 import { validate } from "../middlewares/validator.middleware.js";
 import { userLoginValidator, userRegisterValidator } from "../validators/index.js";
 import { upload } from "../middlewares/multer.middleware.js";
@@ -23,5 +23,8 @@ router.route("/login")
   );
 
 router.get("/get-profile", isLoggedIn, getCurrentUser)
+router.route("/logout")
+  .get(isLoggedIn, logoutUser);
+
 
 export default router;
