@@ -7,24 +7,12 @@ import { isLoggedIn } from "../middlewares/isLoggedin.middleware.js";
 
 const router = Router();
 
-router
-  .route("/register")
-  .post(
-    upload.single("avatar"),
-    userRegisterValidator(),
-    validate,
-    registerUser,
-  );
+router.route("/register").post(upload.single("avatar"),userRegisterValidator(),validate,
+registerUser)
 router.get("/verifyEmail/:token", verifyEmail)
-router.route("/login")
-  .post(
-    userLoginValidator(),validate,
-    loginUser,
-  );
-
+router.route("/login").post(userLoginValidator(),validate,loginUser)
 router.get("/get-profile", isLoggedIn, getCurrentUser)
-router.route("/logout")
-  .get(isLoggedIn, logoutUser);
+router.route("/logout").get(isLoggedIn, logoutUser)
 
 
 export default router;
