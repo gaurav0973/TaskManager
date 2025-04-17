@@ -257,7 +257,31 @@ const resetForgottenPassword = asyncHandler(async (req, res) => {});
 
 const forgotPasswordRequest = asyncHandler(async (req, res) => {});
 
-const changeCurrentPassword = asyncHandler(async (req, res) => {});
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  
+  //1. get loggenIn user => middleware
+  const user = req.user;
+
+  //2. get old and new password
+  const { oldPassword, newPassword } = req.body;
+  if (!oldPassword || !newPassword) {
+    throw new ApiError(400, "Both old and new password are required");
+  }
+
+  //3. Verify old password
+  const isPasswordValid = await user.isPasswordCorrect(oldPassword);
+  if (!isPasswordValid) {
+    throw new ApiError(400, "Invalid old password");
+  }
+
+  //4. Update password
+  user.password = newPassword;
+  await user.save();
+
+  // 5. Send response
+  return res.status(200)
+    .json(new ApiResponse(200, {}, "Password changed successfully"));
+});
 
 export {
   changeCurrentPassword,
