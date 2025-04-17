@@ -163,6 +163,14 @@ const loginUser = asyncHandler(async (req, res) => {
   }
 });
 
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+    const userId = req.userId;
+    const user = req.user;
+    return res.status(200)
+        .json(new ApiResponse(200, user, "User Fetched Successfully"));
+});
+
 const logoutUser = asyncHandler(async (req, res) => {});
 
 const resendEmailVerification = asyncHandler(async (req, res) => {});
@@ -173,8 +181,6 @@ const refreshAccessToken = asyncHandler(async (req, res) => {});
 const forgotPasswordRequest = asyncHandler(async (req, res) => {});
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {});
-
-const getCurrentUser = asyncHandler(async (req, res) => {});
 
 export {
   changeCurrentPassword,

@@ -1,8 +1,9 @@
 import { Router } from "express";
-import { loginUser, registerUser, verifyEmail } from "../controllers/auth.controllers.js";
+import { getCurrentUser, loginUser, registerUser, verifyEmail } from "../controllers/auth.controllers.js";
 import { validate } from "../middlewares/validator.middleware.js";
 import { userLoginValidator, userRegisterValidator } from "../validators/index.js";
 import { upload } from "../middlewares/multer.middleware.js";
+import { isLoggedIn } from "../middlewares/isLoggedin.middleware.js";
 
 const router = Router();
 
@@ -20,5 +21,7 @@ router.route("/login")
     userLoginValidator(),validate,
     loginUser,
   );
+
+router.get("/get-profile", isLoggedIn, getCurrentUser)
 
 export default router;
