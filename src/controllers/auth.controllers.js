@@ -6,7 +6,6 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { emailVerificationMailgenContent, sendEmail } from "../utils/mail.js";
 import { generateAccessAndRefreshToken } from "../utils/generate-access-refresh.js";
 
-
 // register user
 const registerUser = asyncHandler(async (req, res) => {
   //1. get user info from frontend
@@ -124,8 +123,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
   }
 });
 
-
-// login the user 
+// login the user
 const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   console.log("LoginStarts : ", req.body);
@@ -170,7 +168,6 @@ const loginUser = asyncHandler(async (req, res) => {
   }
 });
 
-
 // get the user information
 const getCurrentUser = asyncHandler(async (req, res) => {
   const userId = req.userId;
@@ -180,13 +177,12 @@ const getCurrentUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, user, "User Fetched Successfully"));
 });
 
-
-// logout the user 
+// logout the user
 const logoutUser = asyncHandler(async (req, res) => {
   // 1. get user => isLoggedIn se
   const user = req.user;
   if (!user) {
-    throw new ApiError(400, "User not authenticated")
+    throw new ApiError(400, "User not authenticated");
   }
 
   try {
@@ -203,19 +199,61 @@ const logoutUser = asyncHandler(async (req, res) => {
     res.clearCookie("refreshToken", options);
 
     // 4. return response
-    return res.status(200)
-      .json(new ApiResponse(200, {}, "Logged Out Successfully"))
-
-  }
-  catch(error){
-    throw new ApiError(400, "Error while logging out")
+    return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "Logged Out Successfully"));
+  } catch (error) {
+    throw new ApiError(400, "Error while logging out");
   }
 });
 
-const resendEmailVerification = asyncHandler(async (req, res) => {});
-const resetForgottenPassword = asyncHandler(async (req, res) => {});
+// resend verification email
+const resendEmailVerification = asyncHandler(async (req, res) => {
+  // 1. Get email => user
+  const { email } = req.body;
+  if (!email) {
+    throw new ApiError(400, "Email is required");
+  }
+  try {
+    //2.Find user = email
+    const user = await User.findOne({ email });
+    if (!user) {
+      throw new ApiError(404, "User does not exist");
+    }
 
-const refreshAccessToken = asyncHandler(async (req, res) => {});
+    // 3.Check if email is already verified
+    if (user.isEmailVerified) {
+      throw new ApiError(400, "Email is already verified");
+    }
+
+    // 4. Generate verification token
+    const { unHashedToken, hashedToken, tokenExpiry } = user.generateTemporaryToken();
+
+    // 5. Save the new token and expiry
+    user.emailVerificationToken = hashedToken;
+    user.emailVerificationExpiry = tokenExpiry;
+    await user.save();
+
+    // 6. Send verification email
+    await sendEmail({
+      email: user.email,
+      subject: "Please verify your email",
+      mailgenContent: emailVerificationMailgenContent(
+        user.username,
+        `${process.env.BASE_URL}/api/v1/users/verifyEmail/${hashedToken}`,
+      ),
+    });
+
+    // 7. Return response
+    return res.status(200)
+    .json(new ApiResponse(200,{},"Verification email has been sent successfully"))
+  } 
+  catch (error) {
+    throw new ApiError(400, "Failed sending verificationn email")
+  }
+});
+
+const resetForgottenPassword = asyncHandler(async (req, res) => {});
 
 const forgotPasswordRequest = asyncHandler(async (req, res) => {});
 
@@ -227,7 +265,6 @@ export {
   getCurrentUser,
   loginUser,
   logoutUser,
-  refreshAccessToken,
   registerUser,
   resendEmailVerification,
   resetForgottenPassword,
