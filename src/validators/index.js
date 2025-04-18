@@ -51,6 +51,7 @@ const userChangeCurrentPasswordValidator = () => {
 const userForgotPasswordValidator = () => {
   return [
     body("email")
+      .trim()
       .notEmpty()
       .withMessage("Email is required")
       .isEmail()
@@ -59,7 +60,12 @@ const userForgotPasswordValidator = () => {
 };
 
 const userResetForgottenPasswordValidator = () => {
-  return [body("newPassword").notEmpty().withMessage("Password is required")];
+  return [
+    body("newPassword")
+      .trim()
+      .notEmpty()
+      .withMessage("New password is required"),
+  ];
 };
 
 const createProjectValidator = () => {
@@ -68,7 +74,6 @@ const createProjectValidator = () => {
     body("description").optional(),
   ];
 };
-
 
 const addMemberToProjectValidator = () => {
   return [
@@ -85,7 +90,6 @@ const addMemberToProjectValidator = () => {
       .withMessage("Role is invalid"),
   ];
 };
-
 
 const createTaskValidator = () => {
   return [

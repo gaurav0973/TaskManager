@@ -3,8 +3,13 @@ import { ApiError } from "../utils/api-error.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
-import { emailVerificationMailgenContent, sendEmail } from "../utils/mail.js";
+import {
+  emailVerificationMailgenContent,
+  forgotPasswordMailgenContent,
+  sendEmail,
+} from "../utils/mail.js";
 import { generateAccessAndRefreshToken } from "../utils/generate-access-refresh.js";
+import crypto from "crypto";
 
 // register user
 const registerUser = asyncHandler(async (req, res) => {
@@ -227,7 +232,8 @@ const resendEmailVerification = asyncHandler(async (req, res) => {
     }
 
     // 4. Generate verification token
-    const { unHashedToken, hashedToken, tokenExpiry } = user.generateTemporaryToken();
+    const { unHashedToken, hashedToken, tokenExpiry } =
+      user.generateTemporaryToken();
 
     // 5. Save the new token and expiry
     user.emailVerificationToken = hashedToken;
@@ -245,20 +251,22 @@ const resendEmailVerification = asyncHandler(async (req, res) => {
     });
 
     // 7. Return response
-    return res.status(200)
-    .json(new ApiResponse(200,{},"Verification email has been sent successfully"))
-  } 
-  catch (error) {
-    throw new ApiError(400, "Failed sending verificationn email")
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          {},
+          "Verification email has been sent successfully",
+        ),
+      );
+  } catch (error) {
+    throw new ApiError(400, "Failed sending verificationn email");
   }
 });
 
-const resetForgottenPassword = asyncHandler(async (req, res) => {});
-
-const forgotPasswordRequest = asyncHandler(async (req, res) => {});
-
+// change the current password
 const changeCurrentPassword = asyncHandler(async (req, res) => {
-  
   //1. get loggenIn user => middleware
   const user = req.user;
 
@@ -279,8 +287,95 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
   await user.save();
 
   // 5. Send response
-  return res.status(200)
+  return res
+    .status(200)
     .json(new ApiResponse(200, {}, "Password changed successfully"));
+});
+
+// forgotten Password
+const forgotPasswordRequest = asyncHandler(async (req, res) => {
+  //1. Get email => from user
+  const { email } = req.body;
+  if (!email) {
+    throw new ApiError(400, "Email is required");
+  }
+
+  try {
+    //2. find user
+    const user = await User.findOne({ email });
+    if (!user) {
+      throw new ApiError(404, "User does not exist");
+    }
+
+    //3. Generate  reset token
+    const { unHashedToken, hashedToken, tokenExpiry } =
+      user.generateTemporaryToken();
+
+    // 4. Save reset token and expiry in DB
+    user.forgotPasswordToken = hashedToken;
+    user.forgotPasswordExpiry = tokenExpiry;
+    await user.save();
+
+    // 5. Send reset email
+    await sendEmail({
+      email: user.email,
+      subject: "Reset your password",
+      mailgenContent: forgotPasswordMailgenContent(
+        user.username,
+        `${process.env.BASE_URL}/api/v1/users/reset-password/${hashedToken}`,
+      ),
+    });
+
+    // 6. Return success response
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          {token : hashedToken},
+          "Password reset link has been sent to your email",
+        ),
+      );
+  } catch (error) {
+    console.log("Forgot Password Controller : ", error.message);
+    throw new ApiError(400, "Error Sending Forgot password mail");
+  }
+});
+
+
+// reset forgotten password
+const resetForgottenPassword = asyncHandler(async (req, res) => {
+  //1. token=> params + newPassword => body
+  const { token } = req.params;
+  const { newPassword } = req.body;
+  if (!token || !newPassword) {
+    throw new ApiError(400, "Token and new password are required");
+  }
+
+  try {
+    //2. find user
+    const user = await User.findOne({forgotPasswordToken:token})
+    if (!user) {
+      throw new ApiError(400, "Invalid Token");
+    }
+    if (Date.now() > user.forgotPasswordExpiry) {
+      throw new ApiError(400, "Token has expired");
+    }
+
+    // 3.Update password
+    user.password = newPassword;
+    user.forgotPasswordToken = undefined;
+    user.forgotPasswordExpiry = undefined;
+    await user.save();
+
+    //4. return response
+    return res.status(200)
+      .json(new ApiResponse(200, {}, "Password reset successful"));
+  } 
+  catch (error) {
+    console.log('Error is resetForgottenPassword Controller : ',error.message)
+    throw new ApiError(200, "Failed to reset the Password")
+  }
 });
 
 export {
